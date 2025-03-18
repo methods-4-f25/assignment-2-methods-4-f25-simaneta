@@ -1,0 +1,179 @@
+---
+title: "Assignment 2 - Methods 4"
+author: "Laurits Lyngbaek"
+date: "2025-03-18"
+output: html_document
+---
+# Second assignment
+The second assignment uses chapter 3, 5 and 6. The focus of the assignment is getting an understanding of causality.
+
+##  Chapter 3: Causal Confussion
+**Reminder: We are tying to estimate the probability of giving birth to a boy**
+I have pasted a working solution to questions 6.1-6.3 so you can continue from here:)
+
+**3H3**
+Use rbinom to simulate 10,000 replicates of 200 births. You should end up with 10,000 numbers, each one a count of boys out of 200 births. Compare the distribution of predicted numbers of boys to the actual count in the data (111 boys out of 200 births). 
+
+```{r}
+# 3H1
+# Find the posterior probability of giving birth to a boy:
+pacman::p_load(rethinking)
+data(homeworkch3)
+set.seed(1)
+W <- sum(birth1) + sum(birth2)
+N <- length(birth1) + length(birth2)
+p_grid <-seq(from =0, to = 1, len =1000)
+prob_p <- rep(1,1000)
+prob_data <- dbinom(W,N,prob=p_grid)
+posterior <-prob_data * prob_p
+posterior <- posterior / sum(posterior)
+
+# 3H2
+# Sample probabilities from posterior distribution:
+samples <- sample (p_grid, prob = posterior, size =1e4, replace =TRUE)
+
+
+# 3H3
+# Simulate births using sampled probabilities as simulation input, and check if they allign with real value.
+simulated_births <- rbinom(n = 1e4, size = N, prob = samples)
+rethinking::dens(simulated_births,show.HPDI = 0.95)
+abline(v=W, col="red")
+title("Simulated amount of boys in 200 births - red line is real value")
+
+```
+
+**3H4.**
+Now compare 10,000 counts of boys from 100 simulated first borns only to the number of boys in the first births, birth1. How does the model look in this light?
+```{r}
+
+```
+
+
+**3H5.** 
+The model assumes that sex of first and second births are independent. To check this assumption, focus now on second births that followed female first borns. Compare 10,000 simulated counts of boys to only those second births that followed girls. To do this correctly, you need to cound the number of first borns who were girls and simulate that many births, 10,000 times. Compare the counts of boys in your simulations to the actual observed count of boys following girls. How does the model look in this light? Any guesses what is going on in these data?
+```{r}
+
+```
+
+
+## Chapter 5: Spurrious Correlations
+Start of by checking out all the spurrious correlations that exists in the world.
+Some of these can be seen on this wonderfull website: https://www.tylervigen.com/spurious/random
+All the medium questions are only asking you to explain a solution with words, but feel free to simulate the data and prove the concepts.
+
+
+**5M1**.
+Invent your own example of a spurious correlation. An outcome variable should be correlated
+with both predictor variables. But when both predictors are entered in the same model, the correlation
+between the outcome and one of the predictors should mostly vanish (or at least be greatly reduced).
+
+
+**5M2**.
+Invent your own example of a masked relationship. An outcome variable should be correlated
+with both predictor variables, but in opposite directions. And the two predictor variables should be
+correlated with one another.
+
+
+**5M3**.
+It is sometimes observed that the best predictor of fire risk is the presence of firefighters—
+States and localities with many firefighters also have more fires. Presumably firefighters do not cause
+fires. Nevertheless, this is not a spurious correlation. Instead fires cause firefighters. Consider the
+same reversal of causal inference in the context of the divorce and marriage data. How might a high
+divorce rate cause a higher marriage rate? Can you think of a way to evaluate this relationship, using
+multiple regression
+
+**5M5**.
+One way to reason through multiple causation hypotheses is to imagine detailed mechanisms
+through which predictor variables may influence outcomes. For example, it is sometimes argued that
+the price of gasoline (predictor variable) is positively associated with lower obesity rates (outcome
+variable). However, there are at least two important mechanisms by which the price of gas could
+reduce obesity. First, it could lead to less driving and therefore more exercise. Second, it could lead to
+less driving, which leads to less eating out, which leads to less consumption of huge restaurant meals.
+Can you outline one or more multiple regressions that address these two mechanisms? Assume you
+can have any predictor data you need.
+
+
+## Chapter 5: Foxes and Pack Sizes  
+All five exercises below use the same data, data(foxes) (part of rethinking).84 The urban fox (Vulpes vulpes) is a successful exploiter of human habitat. Since urban foxes move in packs and defend territories, data on habitat quality and population density is also included. The data frame has five columns:
+(1) group: Number of the social group the individual fox belongs to
+(2) avgfood: The average amount of food available in the territory
+(3) groupsize: The number of foxes in the social group
+(4) area: Size of the territory
+(5) weight: Body weight of the individual fox
+
+**5H1.** 
+Fit two bivariate Gaussian regressions, using quap: (1) body weight as a linear function of territory size (area), and (2) body weight as a linear function of groupsize. Plot the results of these regressions, displaying the MAP regression line and the 95% interval of the mean. Is either variable important for predicting fox body weight?
+```{r}
+
+```
+
+
+**5H2.**
+Now fit a multiple linear regression with weight as the outcome and both area and groupsize as predictor variables. Plot the predictions of the model for each predictor, holding the other predictor constant at its mean. What does this model say about the importance of each variable? Why do you get different results than you got in the exercise just above?
+```{r}
+
+```
+
+
+**5H3.**
+Finally, consider the avgfood variable. Fit two more multiple regressions: (1) body weight as an additive function of avgfood and groupsize, and (2) body weight as an additive function of all three variables, avgfood and groupsize and area. Compare the results of these models to the previous models you’ve fit, in the first two exercises. (a) Is avgfood or area a better predictor of body weight? If you had to choose one or the other to include in a model, which would it be? Support your assessment with any tables or plots you choose. (b) When both avgfood or area are in the same model, their effects are reduced (closer to zero) and their standard errors are larger than when they are included in separate models. Can you explain this result?
+```{r}
+
+```
+
+
+**Defining our theory with explicit DAGs**
+Assume this DAG as an causal explanation of fox weight:
+```{r}
+pacman::p_load(dagitty,
+               ggdag)
+dag <- dagitty('dag {
+A[pos="1.000,0.500"]
+F[pos="0.000,0.000"]
+G[pos="2.000,0.000"]
+W[pos="1.000,-0.500"]
+A -> F
+F -> G
+F -> W
+G -> W
+}')
+
+# Plot the DAG
+ggdag(dag, layout = "circle")+
+  theme_dag()
+```
+where A is area, F is avgfood,G is groupsize, and W is weight. 
+
+**Using what you know about DAGs from chapter 5 and 6, solve the following three questions:**
+
+1) Estimate the total causal influence of A on F. What effect would increasing the area of a territory have on the amount of food inside of it?
+```{r}
+
+```
+
+2) Infer the **total** causal effect of adding food F to a territory on the weight W of foxes. Can you calculate the causal effect by simulating an intervention on food?
+```{r}
+
+```
+
+3) Infer the **direct** causal effect of adding food F to a territory on the weight W of foxes. In light of your estimates from this problem and the previous one, what do you think is going on with these foxes? 
+
+
+## Chapter 6: Investigating the Waffles and Divorces
+**6H1**. 
+Use the Waffle House data, data(WaffleDivorce), to find the total causal influence of number of Waffle Houses on divorce rate. Justify your model or models with a causal graph.
+
+```{r}
+
+```
+
+
+**6H2**. 
+Build a series of models to test the implied conditional independencies of the causal graph you used in the previous problem. If any of the tests fail, how do you think the graph needs to be amended? Does the graph need more or fewer arrows? Feel free to nominate variables that aren't int he data.
+```{r}
+
+```
+
+
+
+
